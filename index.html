@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#2563eb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="工资计算器">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>工资计算器</title>
+<style>
+  :root {
+    --bg: #f5f6fa;
+    --card: #ffffff;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --green: #16a34a;
+    --red: #dc2626;
+    --orange: #d97706;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { max-width: 100%; overflow-x: hidden; }
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 24px 16px;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button, input, select { font-family: inherit; touch-action: manipulation; }
+  .container { max-width: 1080px; margin: 0 auto; }
+  h1 {
+    font-size: 26px;
+    margin-bottom: 4px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  h1 .icon { font-size: 28px; }
+  .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 18px 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    border: 1px solid var(--border);
+  }
+  .card h2 {
+    font-size: 16px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--primary);
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .field { margin-bottom: 12px; }
+  .field label {
+    display: block;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .field .hint { font-size: 12px; color: #9ca3af; }
+  .field input, .field select {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 15px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    transition: border-color .15s;
+  }
+  .field input:focus, .field select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+  }
+  .row { display: flex; gap: 12px; }
+  .row .field { flex: 1; }
+  .allowance-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+  .allowance-row input[type="text"] { flex: 1; padding: 8px 10px; font-size: 14px; border: 1px solid var(--border); border-radius: 8px; }
+  .allowance-row input[type="number"] { width: 110px; padding: 8px 10px; font-size: 14px; border: 1px solid var(--border); border-radius: 8px; }
+  .allowance-row .del-btn { background: #fee2e2; color: var(--red); border: none; border-radius: 8px; width: 34px; height: 34px; font-size: 14px; cursor: pointer; flex-shrink: 0; }
+  .allowance-row .del-btn:hover { background: #fecaca; }
+  .add-btn { background: #eef2ff; color: var(--primary); border: 1px dashed var(--primary); border-radius: 8px; padding: 8px 14px; font-size: 13px; cursor: pointer; }
+  .add-btn:hover { background: #e0e7ff; }
+
+  .btn-row { margin: 20px 0; text-align: center; }
+  .btn {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    padding: 12px 40px;
+    font-size: 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .btn:hover { background: var(--primary-dark); }
+  .btn:active { transform: scale(.98); }
+  .btn-clear { background: #f3f4f6; color: var(--text); border: 1px solid var(--border); margin-left: 10px; }
+  .btn-clear:hover { background: #e5e7eb; }
+
+  /* 结果区 */
+  .result { display: none; }
+  .result.show { display: block; }
+  .net-box {
+    background: linear-gradient(135deg, var(--primary), #1e40af);
+    color: #fff;
+    border-radius: 12px;
+    padding: 22px;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .net-box .label { font-size: 14px; opacity: .9; }
+  .net-box .amount { font-size: 40px; font-weight: 700; margin-top: 4px; }
+  .net-box .sub { font-size: 13px; opacity: .85; margin-top: 6px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--border); word-break: break-word; }
+  th { color: var(--muted); font-weight: 600; background: #fafafa; }
+  td:first-child, th:first-child { text-align: left; }
+  tr.total td { font-weight: 700; border-top: 2px solid var(--border); background: #fafafa; }
+  .positive { color: var(--green); }
+  .negative { color: var(--red); }
+  .section-title {
+    font-size: 14px; font-weight: 700; margin: 14px 0 8px; color: var(--text);
+  }
+
+  .note {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: #1e40af;
+    margin-top: 16px;
+    white-space: pre-line;
+  }
+
+  details.rule {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-top: 20px;
+  }
+  details.rule summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 15px;
+  }
+  details.rule ul { margin: 10px 0 0 20px; font-size: 14px; }
+  details.rule li { margin-bottom: 4px; }
+
+  /* ---------- 手机端适配 ---------- */
+  @media (max-width: 640px) {
+    body { padding: 12px 10px; }
+    h1 { font-size: 20px; gap: 6px; }
+    h1 .icon { font-size: 22px; }
+    .subtitle { font-size: 12px; margin-bottom: 16px; }
+    .grid { gap: 12px; }
+    .card { padding: 14px; border-radius: 10px; }
+    .card h2 { font-size: 15px; margin-bottom: 12px; padding-bottom: 8px; }
+
+    /* 多字段行改竖排，避免窄屏挤压 */
+    .row { flex-direction: column; gap: 0; }
+    .row .field { width: 100%; }
+
+    /* 输入框放大到 16px：防止 iOS 聚焦时页面自动放大 */
+    .field { margin-bottom: 10px; }
+    .field input, .field select { font-size: 16px; padding: 10px 12px; }
+
+    /* 补贴行 */
+    .allowance-row { gap: 6px; }
+    .allowance-row input[type="text"] { font-size: 16px; padding: 10px; min-width: 0; }
+    .allowance-row input[type="number"] { font-size: 16px; padding: 10px 6px; width: 82px; }
+    .allowance-row .del-btn { width: 40px; height: 40px; font-size: 15px; }
+    .add-btn { width: 100%; padding: 10px; font-size: 14px; }
+
+    /* 按钮整行、加大点击区域 */
+    .btn-row { display: flex; flex-direction: column; gap: 10px; margin: 16px 0; }
+    .btn { width: 100%; padding: 14px; font-size: 16px; }
+    .btn-clear { margin-left: 0; }
+
+    /* 结果区 */
+    .net-box { padding: 18px 12px; }
+    .net-box .amount { font-size: 30px; }
+    .net-box .sub { font-size: 12px; }
+    table { font-size: 13px; }
+    th, td { padding: 7px 6px; }
+    .note { font-size: 12px; padding: 10px 12px; }
+    details.rule { padding: 12px 14px; }
+    details.rule summary { font-size: 14px; }
+    details.rule ul { font-size: 13px; margin-left: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1><span class="icon">💰</span>工资计算器</h1>
+  <p class="subtitle">输入你的工资信息，自动计算应发、社保公积金、个税和实发工资</p>
+
+  <div class="grid">
+    <!-- 工资构成 -->
+    <div class="card">
+      <h2>① 工资构成</h2>
+      <div class="field">
+        <label>岗位工资（元/月）<span class="hint"> — 填入后自动拆分为 基础工资 + 基础绩效（社保/公积金基数）</span></label>
+        <input type="number" id="postWageInput" value="0" min="0" step="0.01">
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>基础工资占比（%）</label>
+          <input type="number" id="basicSplit" value="70" min="0" max="100" step="1">
+        </div>
+        <div class="field">
+          <label>基础绩效占比（%）</label>
+          <input type="number" id="perfSplit" value="30" min="0" max="100" step="1">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>基础工资（自动）<span class="hint"> — 加班费/缺勤折算基数</span></label>
+          <input type="text" id="basicShow" readonly>
+        </div>
+        <div class="field">
+          <label>基础绩效（自动）<span class="hint"> — 按考核等级发放</span></label>
+          <input type="text" id="basicPerfShow" readonly>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>绩效考核等级</label>
+          <select id="perfLevel">
+            <option value="1.2">优秀（多发20%）</option>
+            <option value="1.1">良好（多发10%）</option>
+            <option value="1" selected>胜任（100%）</option>
+            <option value="0.9">合格（扣10%）</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>本月应发绩效（自动）<span class="hint"> = 基础绩效 × 等级</span></label>
+          <input type="text" id="perfPayShow" readonly>
+        </div>
+      </div>
+      <div class="field">
+        <label>当月工时（小时）<span class="hint"> — 应出勤工时，按考勤填</span></label>
+        <input type="number" id="workHours" value="0" min="0" step="0.5">
+      </div>
+      <div class="field">
+        <label>工龄工资（元）<span class="hint"> — 多一年+100，按输入金额</span></label>
+        <input type="number" id="seniority" value="0" min="0" step="0.01">
+      </div>
+      <div class="field">
+        <label>补贴 / 津贴（可添加多个类别）<span class="hint" id="allowanceTotalHint"></span></label>
+        <div id="allowanceList"></div>
+        <button type="button" class="add-btn" id="addAllowanceBtn">＋ 添加补贴项</button>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>平时加班（小时）<span class="hint"> ×1.5</span></label>
+          <input type="number" id="otWeekday" value="0" min="0" step="0.5">
+        </div>
+        <div class="field">
+          <label>周末加班（小时）<span class="hint"> ×2</span></label>
+          <input type="number" id="otWeekend" value="0" min="0" step="0.5">
+        </div>
+        <div class="field">
+          <label>节假日加班（小时）<span class="hint"> ×3</span></label>
+          <input type="number" id="otHoliday" value="0" min="0" step="0.5">
+        </div>
+      </div>
+      <div class="field">
+        <label>加班时薪（元/小时，可选）<span class="hint"> — 留空则用 基础工资÷当月工时；若公司与标准算法不同可在此填实际时薪</span></label>
+        <input type="number" id="otHourlyCustom" value="" min="0" step="0.01" placeholder="留空自动">
+      </div>
+      <div class="field">
+        <label>缺勤 / 请假（小时）<span class="hint"> — 先用平时加班 1:1 抵掉，剩余按小时扣</span></label>
+        <input type="number" id="absenceHours" value="0" min="0" step="0.5">
+        <div class="hint" id="offsetInfo" style="color:var(--orange);"></div>
+      </div>
+    </div>
+
+    <!-- 社保公积金 -->
+    <div class="card">
+      <h2>② 社保 & 公积金</h2>
+      <div class="row">
+        <div class="field">
+          <label>社保最低缴费基数（元）</label>
+          <input type="number" id="ssMinBase" value="0" min="0">
+        </div>
+        <div class="field">
+          <label>社保基数系数（%）<span class="hint"> — 岗位工资 × 系数</span></label>
+          <input type="number" id="ssRatio" value="60" min="0" max="100" step="1">
+        </div>
+      </div>
+      <div class="field">
+        <label>社保缴费基数（自动）<span class="hint"> = max(岗位工资 × 系数, 最低基数)</span></label>
+        <input type="text" id="ssCalcBase" readonly>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>养老个人比例（%）</label>
+          <input type="number" id="pensionRate" value="8" min="0" max="100" step="0.1">
+        </div>
+        <div class="field">
+          <label>医疗个人比例（%）</label>
+          <input type="number" id="medicalRate" value="2" min="0" max="100" step="0.1">
+        </div>
+        <div class="field">
+          <label>失业个人比例（%）</label>
+          <input type="number" id="unempRate" value="0.4" min="0" max="100" step="0.1">
+        </div>
+      </div>
+      <div class="section-title" style="margin-top:8px;">住房公积金</div>
+      <div class="row">
+        <div class="field">
+          <label>扣除方式</label>
+          <select id="fundMode">
+            <option value="ratio" selected>按岗位工资 × 比例</option>
+            <option value="fixed">按固定金额</option>
+          </select>
+        </div>
+        <div class="field" id="fundRatioField">
+          <label>个人比例（%）<span class="hint"> — 从工资扣</span></label>
+          <input type="number" id="fundRate" value="12" min="0" max="12" step="0.5">
+        </div>
+        <div class="field" id="fundFixedField" style="display:none;">
+          <label>固定扣除金额（元）</label>
+          <input type="number" id="fundFixed" value="0" min="0" step="0.01">
+        </div>
+      </div>
+      <div class="field">
+        <label>公司比例（%）<span class="hint"> — 单位缴存，不从工资扣，仅用于显示</span></label>
+        <input type="number" id="fundRateCompany" value="5" min="0" max="12" step="0.5">
+      </div>
+      <div class="hint" id="fundLiveHint" style="color:var(--muted);"></div>
+      <div class="field">
+        <label>代扣水电气（宿舍费用，元）<span class="hint"> — 不计入个税，直接从实发里扣</span></label>
+        <input type="number" id="otherDeduct" value="0" min="0" step="0.01">
+      </div>
+      <p class="note" style="margin-top:10px;background:#fefce8;border-color:#fde68a;color:#92400e;">
+        💡 社保基数 = 岗位工资×系数 与最低基数取较高者（见下方「社保缴费基数（自动）」）。
+        公积金可切换为「按固定金额」扣除。
+      </p>
+    </div>
+  </div>
+
+  <!-- 个税（进阶） -->
+  <div class="card" style="margin-top:16px;">
+    <h2>③ 个人所得税（累计预扣法）</h2>
+    <div class="field">
+      <label>每月专项附加扣除合计（元）<span class="hint"> — 赡养老人、房贷、子女教育等，无则填 0</span></label>
+      <input type="number" id="extraDeduct" value="0" min="0" step="0.01">
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>截至上月累计应纳税所得额（元）<span class="hint"> — 个税APP可查；今年首次算填 0</span></label>
+        <input type="number" id="cumTaxableBefore" value="0" min="0" step="0.01">
+      </div>
+      <div class="field">
+        <label>截至上月累计已预缴个税（元）<span class="hint"> — 个税APP可查；今年首次算填 0</span></label>
+        <input type="number" id="cumTaxBefore" value="0" min="0" step="0.01">
+      </div>
+    </div>
+    <p class="note">
+      采用国家标准的<b>累计预扣预缴法</b>：本月累计应纳税所得额 = 截至上月累计应纳税所得额 + 本月（应发 − 社保 − 公积金 − 5000 − 专项附加扣除）。
+      再套用累计税率表算出累计应纳税额，减去截至上月已预缴个税，即为本月应扣个税。
+    </p>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn" id="calcBtn">🧮 计算工资</button>
+    <button class="btn btn-clear" id="clearBtn" title="清空所有输入并清除浏览器保存的数据">🗑️ 清空全部数据</button>
+  </div>
+
+  <!-- 结果 -->
+  <div class="result" id="result">
+    <div class="net-box">
+      <div class="label">本月实发工资</div>
+      <div class="amount" id="netAmount">¥0.00</div>
+      <div class="sub" id="netSub"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">📥 应发明细</div>
+      <table id="earnTable"></table>
+      <div class="section-title">📤 扣款明细</div>
+      <table id="deductTable"></table>
+      <div class="section-title">🧾 个税计算过程</div>
+      <table id="taxTable"></table>
+      <div id="fundInfo" class="note" style="background:#f0fdf4;border-color:#bbf7d0;color:#166534;margin-top:14px;"></div>
+    </div>
+
+    <details class="rule">
+      <summary>📖 本计算器采用的规则（可核对）</summary>
+      <ul>
+        <li><b>岗位工资</b> = 输入值（用于社保/公积金）；自动拆分：基础工资 70% + 基础绩效 30%（比例可改）</li>
+        <li><b>时薪</b> = 基础工资 ÷ 当月工时（当月工时手动填写）</li>
+        <li><b>加班费</b>：平时 ×1.5、周末 ×2、节假日 ×3（按基础工资折算的时薪）</li>
+        <li><b>绩效</b> = 基础绩效 × 等级（胜任 100%、良好 110%、优秀 120%、合格 90%）</li>
+        <li><b>工龄工资</b>：多一年多 100（按输入金额）</li>
+        <li><b>补贴</b>：分多个类别可自行添加</li>
+        <li><b>缺勤扣款</b> = 缺勤小时数 × 时薪（先用平时加班 1:1 抵掉，剩余才扣款）</li>
+        <li><b>加班时薪</b>：可自定义覆盖（默认 基础工资÷当月工时）</li>
+        <li><b>社保基数</b> = max(岗位工资 × 系数, 最低基数)，个人扣养老 + 医疗 + 失业</li>
+        <li><b>公积金</b>（个人）= 岗位工资 × 个人比例（如 12%），从工资扣；单位另按公司比例（如 5%）缴存</li>
+        <li><b>其他代扣</b>（水电气/宿舍费）= 不计个税，直接从实发扣</li>
+        <li><b>个税</b> = 累计预扣法（见上方说明）</li>
+        <li><b>实发</b> = 应发 − 缺勤扣款 − 社保 − 公积金 − 其他代扣 − 个税</li>
+      </ul>
+    </details>
+  </div>
+</div>
+
+<script>
+(function () {
+  const STORAGE_KEY = 'salaryCalcInputs_v1';
+
+  // 预扣率表（综合所得 7 级）
+  const BRACKETS = [
+    { up: 36000,    rate: 0.03, quick: 0 },
+    { up: 144000,   rate: 0.10, quick: 2520 },
+    { up: 300000,   rate: 0.20, quick: 16920 },
+    { up: 420000,   rate: 0.25, quick: 31920 },
+    { up: 660000,   rate: 0.30, quick: 52920 },
+    { up: 960000,   rate: 0.35, quick: 85920 },
+    { up: Infinity, rate: 0.45, quick: 181920 }
+  ];
+
+  function money(n) {
+    return '¥' + (isFinite(n) ? n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00');
+  }
+  function num(id) {
+    const v = parseFloat(document.getElementById(id).value);
+    return isNaN(v) || v < 0 ? 0 : v;
+  }
+  function taxOf(cumTaxable) {
+    for (const b of BRACKETS) {
+      if (cumTaxable <= b.up) return cumTaxable * b.rate - b.quick;
+    }
+    return 0;
+  }
+  function bracketOf(cumTaxable) {
+    for (const b of BRACKETS) {
+      if (cumTaxable <= b.up) return b;
+    }
+    return BRACKETS[BRACKETS.length - 1];
+  }
+
+  function save() {
+    const ids = ['postWageInput','basicSplit','perfSplit','workHours','perfLevel','seniority',
+      'otWeekday','otWeekend','otHoliday','otHourlyCustom','absenceHours','ssMinBase','ssRatio',
+      'pensionRate','medicalRate','unempRate','fundMode','fundRate','fundRateCompany','fundFixed','otherDeduct','extraDeduct','cumTaxableBefore','cumTaxBefore'];
+    const data = {};
+    ids.forEach(id => data[id] = document.getElementById(id).value);
+    data.allowances = collectAllowances().items;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
+  }
+  function load() {
+    // 自动保存：数据存在各人自己的浏览器 localStorage 中（不随文件传输），
+    // 文件本身是空白模板，每个人保存的都是自己浏览器里的数据，互不影响
+    try {
+      const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      const list = document.getElementById('allowanceList');
+      list.innerHTML = '';
+      if (data && data.allowances && data.allowances.length) {
+        data.allowances.forEach(it => addAllowanceRow(it.name, it.amt));
+      } else {
+        addAllowanceRow('', 0);
+        addAllowanceRow('', 0);
+      }
+      if (data) {
+        Object.keys(data).forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.value = data[id];
+        });
+      }
+    } catch (e) {}
+  }
+
+  function updateAutoFields() {
+    const postWage    = num('postWageInput');
+    const basicSplit  = num('basicSplit') / 100;
+    const perfSplit   = num('perfSplit') / 100;
+    const basic       = postWage * basicSplit;
+    const basicPerf   = postWage * perfSplit;
+    const perfRatio   = parseFloat(document.getElementById('perfLevel').value) || 1;
+    document.getElementById('basicShow').value = basic.toFixed(2);
+    document.getElementById('basicPerfShow').value = basicPerf.toFixed(2);
+    document.getElementById('perfPayShow').value = (basicPerf * perfRatio).toFixed(2);
+
+    const ssMinBase = num('ssMinBase');
+    const ssRatio   = num('ssRatio') / 100;
+    const ssBase    = Math.max(postWage * ssRatio, ssMinBase);
+    document.getElementById('ssCalcBase').value = ssBase.toFixed(2);
+
+    const fundMode = document.getElementById('fundMode').value;
+    document.getElementById('fundRatioField').style.display = fundMode === 'ratio' ? '' : 'none';
+    document.getElementById('fundFixedField').style.display = fundMode === 'fixed' ? '' : 'none';
+
+    // 公积金个人/公司实时提示
+    const fundPersonal = fundMode === 'fixed' ? num('fundFixed') : postWage * num('fundRate') / 100;
+    const fundCo = postWage * num('fundRateCompany') / 100;
+    document.getElementById('fundLiveHint').textContent =
+      '个人每月扣 ' + money(fundPersonal) + '，单位缴 ' + money(fundCo) + '，合计存入账户 ' + money(fundPersonal + fundCo);
+
+    document.getElementById('allowanceTotalHint').textContent = ' — 合计 ' + money(collectAllowances().total);
+
+    // 加班抵缺勤实时提示
+    const otW = num('otWeekday');
+    const ab  = num('absenceHours');
+    const off = Math.min(otW, ab);
+    const infoEl = document.getElementById('offsetInfo');
+    infoEl.textContent = off > 0
+      ? '（已用平时加班 ' + off + 'h 抵掉缺勤 → 剩余缺勤 ' + (ab - off) + 'h、剩余平时加班 ' + (otW - off) + 'h）'
+      : '';
+  }
+
+  function addAllowanceRow(name, amt) {
+    const list = document.getElementById('allowanceList');
+    const row = document.createElement('div');
+    row.className = 'allowance-row';
+    row.innerHTML =
+      '<input type="text" class="allowance-name" placeholder="补贴名称" value="">' +
+      '<input type="number" class="allowance-amt" min="0" step="0.01" value="0">' +
+      '<button type="button" class="del-btn" title="删除">✕</button>';
+    if (name) row.querySelector('.allowance-name').value = name;
+    if (amt) row.querySelector('.allowance-amt').value = amt;
+    row.querySelector('.del-btn').addEventListener('click', () => {
+      row.remove();
+      save();
+      updateAutoFields();
+    });
+    list.appendChild(row);
+  }
+
+  function collectAllowances() {
+    const rows = document.querySelectorAll('#allowanceList .allowance-row');
+    const items = [];
+    let total = 0;
+    rows.forEach(r => {
+      const name = r.querySelector('.allowance-name').value.trim();
+      const v = parseFloat(r.querySelector('.allowance-amt').value);
+      const amt = isNaN(v) || v < 0 ? 0 : v;
+      items.push({ name: name || '补贴', amt: amt });
+      total += amt;
+    });
+    return { items: items, total: total };
+  }
+
+  function calc() {
+    save();
+    updateAutoFields();
+
+    const postWage    = num('postWageInput');   // 岗位工资（不随考核变化，用于社保/公积金）
+    const basicSplit  = num('basicSplit') / 100;
+    const perfSplit   = num('perfSplit') / 100;
+    const basic       = postWage * basicSplit;  // 基础工资（加班/缺勤折算基数）
+    const basicPerf   = postWage * perfSplit;   // 基础绩效（按考核等级发放）
+    const workHours   = num('workHours') || 1;  // 当月工时（考勤应出勤工时）
+    const perfRatio   = parseFloat(document.getElementById('perfLevel').value) || 1;
+    const seniority   = num('seniority');
+    const allowanceInfo = collectAllowances();
+    const allowance   = allowanceInfo.total;
+    const allowanceItems = allowanceInfo.items;
+    const otWeekday   = num('otWeekday');
+    const otWeekend   = num('otWeekend');
+    const otHoliday   = num('otHoliday');
+    const absenceHours= num('absenceHours');
+
+    // 社保基数 = max(岗位工资 × 系数, 最低基数)
+    const ssMinBase = num('ssMinBase');
+    const ssRatio   = num('ssRatio') / 100;
+    const ssBase    = Math.max(postWage * ssRatio, ssMinBase);
+
+    // 公积金：个人按岗位工资×比例（或固定金额），公司另按公司比例缴存
+    const fundMode  = document.getElementById('fundMode').value;
+    const fundRate  = num('fundRate') / 100;
+    const fundFixed = num('fundFixed');
+    const fundRateCompany = num('fundRateCompany') / 100;
+    const fund      = fundMode === 'fixed' ? fundFixed : postWage * fundRate;
+    const fundCompany = postWage * fundRateCompany;   // 单位缴存，不从工资扣
+    const otherDeduct = num('otherDeduct');   // 水电气等，不计个税
+    const fundLabel = fundMode === 'fixed'
+      ? '住房公积金（个人，固定金额）'
+      : '住房公积金（个人 ' + (fundRate * 100).toFixed(1) + '%）';
+
+    const pensionR   = num('pensionRate') / 100;
+    const medicalR   = num('medicalRate') / 100;
+    const unempR     = num('unempRate') / 100;
+
+    const extraDeduct       = num('extraDeduct');
+    const cumTaxableBefore  = num('cumTaxableBefore');
+    const cumTaxBefore      = num('cumTaxBefore');
+
+    // 时薪 = 基础工资 ÷ 当月工时（可被自定义加班时薪覆盖）
+    const customHourly = num('otHourlyCustom');
+    const hourly  = customHourly > 0 ? customHourly : basic / workHours;
+
+    // 缺勤先用平时加班 1:1 抵掉（调休）
+    const offsetHours  = Math.min(otWeekday, absenceHours);
+    const effOtWeekday = otWeekday - offsetHours;
+    const effAbsence   = absenceHours - offsetHours;
+
+    // 加班费（平时加班按抵扣后剩余小时算）
+    const otWeekdayPay = effOtWeekday * hourly * 1.5;
+    const otWeekendPay = otWeekend * hourly * 2;
+    const otHolidayPay = otHoliday * hourly * 3;
+    const otPay = otWeekdayPay + otWeekendPay + otHolidayPay;
+
+    // 绩效 = 基础绩效 × 等级系数（岗位工资不变，仍用于社保/公积金）
+    const perfPay = basicPerf * perfRatio;
+
+    // 应发合计 = 基础工资 + 绩效 + 工龄 + 补贴 + 加班
+    const gross = basic + perfPay + seniority + allowance + otPay;
+
+    // 缺勤扣款（仅抵扣后剩余部分）
+    const absenceDeduct = effAbsence * hourly;
+
+    // 社保（个人部分，按社保基数）
+    const pension = ssBase * pensionR;
+    const medical = ssBase * medicalR;
+    const unemp   = ssBase * unempR;
+    const ssTotal = pension + medical + unemp;
+
+    // 个税（累计预扣法）
+    const monthContribution = gross - absenceDeduct - ssTotal - fund - 5000 - extraDeduct;
+    const cumTaxable = Math.max(0, cumTaxableBefore + monthContribution);
+    const cumTax     = taxOf(cumTaxable);
+    const bracket    = bracketOf(cumTaxable);
+    const incomeTax  = Math.max(0, cumTax - cumTaxBefore);
+
+    const totalDeduct = absenceDeduct + ssTotal + fund + otherDeduct + incomeTax;
+    const net = gross - totalDeduct;
+
+    // ---- 渲染 ----
+    document.getElementById('result').classList.add('show');
+    document.getElementById('netAmount').textContent = money(net);
+    document.getElementById('netSub').textContent =
+      '应发 ' + money(gross) + ' − 扣款 ' + money(totalDeduct) +
+      '（时薪 ' + money(hourly) + '）';
+
+    // 应发明细
+    const earnRows = [
+      ['基础工资', basic],
+      ['绩效工资（' + (perfRatio * 100).toFixed(0) + '% × 基础绩效 ' + basicPerf.toFixed(2) + '）', perfPay],
+      ['工龄工资', seniority]
+    ];
+    allowanceItems.forEach(it => earnRows.push([it.name, it.amt]));
+    if (allowanceItems.length) earnRows.push(['补贴津贴合计', allowance]);
+    const otWeekdayLabel = offsetHours > 0
+      ? '平时加班 ' + effOtWeekday + 'h ×1.5（原 ' + otWeekday + 'h − 抵缺勤 ' + offsetHours + 'h）'
+      : '平时加班 ' + otWeekday + 'h ×1.5';
+    earnRows.push(
+      [otWeekdayLabel, otWeekdayPay],
+      ['周末加班 ' + otWeekend + 'h ×2', otWeekendPay],
+      ['节假日加班 ' + otHoliday + 'h ×3', otHolidayPay],
+      ['应发合计', gross]
+    );
+    document.getElementById('earnTable').innerHTML = rows(earnRows, true);
+
+    // 扣款明细
+    const absenceLabel = offsetHours > 0
+      ? '缺勤扣款（' + effAbsence + 'h，已用平时加班抵 ' + offsetHours + 'h）'
+      : '缺勤扣款（' + absenceHours + 'h × ' + hourly.toFixed(2) + '）';
+    document.getElementById('deductTable').innerHTML = rows([
+      [absenceLabel, absenceDeduct],
+      ['养老保险（' + (pensionR * 100).toFixed(1) + '% × ' + ssBase.toFixed(2) + '）', pension],
+      ['医疗保险（' + (medicalR * 100).toFixed(1) + '% × ' + ssBase.toFixed(2) + '）', medical],
+      ['失业保险（' + (unempR * 100).toFixed(1) + '% × ' + ssBase.toFixed(2) + '）', unemp],
+      [fundLabel, fund],
+      ['代扣水电气（宿舍费用）', otherDeduct],
+      ['个人所得税', incomeTax],
+      ['扣款合计', totalDeduct]
+    ], true);
+
+    // 个税计算过程
+    document.getElementById('taxTable').innerHTML = rows([
+      ['本月应纳税所得额贡献额', monthContribution],
+      ['本月累计应纳税所得额', cumTaxable],
+      ['适用税率', (bracket.rate * 100).toFixed(0) + '%　速算扣除数 ' + bracket.quick],
+      ['累计应预缴个税', cumTax],
+      ['− 截至上月已预缴', cumTaxBefore],
+      ['本月应扣个税', incomeTax]
+    ], true);
+
+    // 公积金账户（个人 + 公司）
+    document.getElementById('fundInfo').textContent =
+      '🏦 住房公积金账户本月存入：个人 ' + money(fund) + '（从工资扣） + 单位 ' + money(fundCompany) +
+      '（公司缴） = ' + money(fund + fundCompany) + '，全额进入你的公积金账户。';
+  }
+
+  function rows(items, isMoneyCols) {
+    let html = '<tr><th>项目</th><th>金额</th></tr>';
+    items.forEach((it, i) => {
+      const isTotal = i === items.length - 1 && it[0].indexOf('合计') !== -1;
+      const cls = isTotal ? ' class="total"' : '';
+      const val = typeof it[1] === 'number'
+        ? (isMoneyCols ? money(it[1]) : it[1])
+        : it[1];
+      html += '<tr' + cls + '><td>' + it[0] + '</td><td>' + val + '</td></tr>';
+    });
+    return html;
+  }
+
+  ['postWageInput','basicSplit','perfSplit','perfLevel','otWeekday','absenceHours','ssMinBase','ssRatio','fundMode','fundRate','fundRateCompany','fundFixed'].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('input', updateAutoFields);
+    el.addEventListener('change', updateAutoFields);
+  });
+
+  document.getElementById('allowanceList').addEventListener('input', updateAutoFields);
+  document.getElementById('addAllowanceBtn').addEventListener('click', () => {
+    addAllowanceRow('', '');
+    save();
+    updateAutoFields();
+  });
+
+  document.getElementById('calcBtn').addEventListener('click', calc);
+
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    const zeroIds = ['postWageInput','workHours','seniority','otWeekday','otWeekend','otHoliday','absenceHours','ssMinBase','fundFixed','otherDeduct','extraDeduct','cumTaxableBefore','cumTaxBefore'];
+    zeroIds.forEach(id => { const el = document.getElementById(id); if (el) el.value = '0'; });
+    const el = document.getElementById('otHourlyCustom');
+    if (el) el.value = '';
+    document.getElementById('perfLevel').value = '1';
+    document.getElementById('fundMode').value = 'ratio';
+    const list = document.getElementById('allowanceList');
+    list.innerHTML = '';
+    addAllowanceRow('', 0);
+    addAllowanceRow('', 0);
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+    document.getElementById('result').classList.remove('show');
+    updateAutoFields();
+  });
+
+  load();
+  updateAutoFields();
+})();
+</script>
+<script>
+  // PWA：注册 Service Worker 实现离线可用（仅 https / localhost 生效，file:// 打开时自动忽略）
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('service-worker.js').catch(function () {});
+    });
+  }
+</script>
+</body>
+</html>
